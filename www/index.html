@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>دنگ سفر</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f4ef;--card:#fff;--tx:#1d1d1b;--mut:#6b6a66;--ac:#0f766e;--acx:#fff;--bd:#e4e1d9;--pos:#15803d;--neg:#b91c1c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14161a;--card:#1e2128;--tx:#eceae4;--mut:#9a98a0;--ac:#2dd4bf;--acx:#06201d;--bd:#2d313a;--pos:#4ade80;--neg:#f87171;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14161a;--card:#1e2128;--tx:#eceae4;--mut:#9a98a0;--ac:#2dd4bf;--acx:#06201d;--bd:#2d313a;--pos:#4ade80;--neg:#f87171;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:Vazirmatn,Tahoma,sans-serif;line-height:1.7}
+main{max-width:520px;margin:0 auto;padding:16px}
+h1{font-size:22px;font-weight:800;margin:4px 0 12px}
+h2{font-size:15px;margin:0 0 10px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:14px}
+input,select{width:100%;font:inherit;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);margin-bottom:8px}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:10px 14px;background:var(--ac);color:var(--acx);font-weight:600}
+button.g{background:transparent;color:var(--mut);padding:2px 8px}
+.row{display:flex;gap:8px;align-items:center}
+.row input{margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{display:flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--bd);border-radius:20px;padding:2px 10px;font-size:14px}
+.chip label{display:flex;gap:4px;align-items:center;cursor:pointer}
+.chip input{width:auto;margin:0}
+.it{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--bd);font-size:14px}
+.it:first-of-type{border-top:0}
+.m{color:var(--mut);font-size:12px}
+.pos{color:var(--pos);font-weight:600}.neg{color:var(--neg);font-weight:600}
+.tot{font-size:13px;color:var(--mut);margin-bottom:8px}
+</style>
+</head>
+<body>
+<main>
+<h1>🧳 دنگ سفر</h1>
+
+<div class="card">
+<h2>اعضای سفر</h2>
+<div class="row"><input id="nm" placeholder="نام (مثلاً علی)"><button onclick="addP()">افزودن</button></div>
+<div class="chips" id="people" style="margin-top:10px"></div>
+</div>
+
+<div class="card">
+<h2>ثبت هزینه</h2>
+<input id="ti" placeholder="بابت چی؟ (شام، بنزین، ...)">
+<input id="am" type="number" inputmode="numeric" placeholder="مبلغ (تومان)">
+<select id="pa"></select>
+<select id="md" onchange="drawSh()"><option value="eq">تقسیم مساوی</option><option value="cu">سهم دلخواه هر نفر</option></select>
+<div class="m" id="hint" style="margin-bottom:6px">دنگ بین چه کسانی تقسیم شود؟</div>
+<div class="chips" id="sh"></div>
+<button onclick="addE()" style="width:100%">ثبت هزینه</button>
+</div>
+
+<div class="card"><h2>هزینه‌ها</h2><div class="tot" id="tot"></div><div id="ex"></div></div>
+<div class="card"><h2>تراز هر نفر</h2><div id="bal"></div></div>
+<div class="card"><h2>تسویه حساب</h2><div id="set"></div></div>
+<button class="g" id="rb" onclick="reset()">پاک کردن همه‌چیز</button>
+<div class="m" id="msg" style="margin-top:8px;color:var(--neg)"></div>
+</main>
+<script>
+var S={p:[],e:[]};
+try{var r=localStorage.getItem('dong');if(r)S=JSON.parse(r)}catch(x){}
+function save(){try{localStorage.setItem('dong',JSON.stringify(S))}catch(x){}}
+function f(n){return Math.round(n).toLocaleString('fa-IR')}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function drawSh(){
+ var cu=document.getElementById('md').value==='cu',am=document.getElementById('am');
+ am.readOnly=cu;am.value='';am.placeholder=cu?'جمع سهم‌ها (خودکار)':'مبلغ (تومان)';
+ document.getElementById('hint').textContent=cu?'سهم هر نفر را بنویسید (کسی که سهم ندارد را خالی بگذارید):':'دنگ بین چه کسانی تقسیم شود؟';
+ document.getElementById('sh').innerHTML=S.p.map(function(n){
+  if(cu)return '<div class="row" style="width:100%;margin-bottom:6px"><span style="flex:1">'+esc(n)+'</span><input data-n="'+esc(n)+'" type="number" inputmode="numeric" placeholder="۰" oninput="sumSh()" style="width:140px"></div>';
+  return '<span class="chip"><label><input type="checkbox" checked value="'+esc(n)+'">'+esc(n)+'</label></span>'}).join('');
+}
+function sumSh(){var t=0;[].slice.call(document.querySelectorAll('#sh input[data-n]')).forEach(function(c){t+=+c.value||0});document.getElementById('am').value=t||''}
+function addP(){var v=document.getElementById('nm').value.trim();if(!v||S.p.indexOf(v)>-1)return;S.p.push(v);document.getElementById('nm').value='';save();draw()}
+function delP(i){var n=S.p[i];if(S.e.some(function(e){return e.by===n||e.w.indexOf(n)>-1})){msg('این فرد در هزینه‌ها دخیل است. اول هزینه‌هایش را حذف کنید.');return}S.p.splice(i,1);save();draw()}
+function addE(){
+ var t=document.getElementById('ti').value.trim()||'هزینه',a=+document.getElementById('am').value,by=document.getElementById('pa').value;
+ var cu=document.getElementById('md').value==='cu',s=null,w;
+ if(cu){s={};w=[];[].slice.call(document.querySelectorAll('#sh input[data-n]')).forEach(function(c){var v=+c.value;if(v>0){s[c.dataset.n]=v;w.push(c.dataset.n)}});a=w.reduce(function(x,n){return x+s[n]},0)}else{w=[].slice.call(document.querySelectorAll('#sh input:checked')).map(function(c){return c.value})}
+ if(!(a>0)||!by||!w.length){msg('مبلغ، پرداخت‌کننده و حداقل یک نفر را مشخص کنید.');return}
+ S.e.push({t:t,a:a,by:by,w:w,s:s});document.getElementById('ti').value='';document.getElementById('am').value='';save();draw()}
+function delE(i){S.e.splice(i,1);save();draw()}
+var rt=null;
+function msg(t){var m=document.getElementById('msg');m.textContent=t;clearTimeout(msg.t);msg.t=setTimeout(function(){m.textContent=''},4000)}
+function reset(){var b=document.getElementById('rb');if(!rt){b.textContent='مطمئنی؟ دوباره بزن تا همه پاک شه';rt=setTimeout(function(){rt=null;b.textContent='پاک کردن همه‌چیز'},4000);return}clearTimeout(rt);rt=null;b.textContent='پاک کردن همه‌چیز';S={p:[],e:[]};save();draw();msg('همه اطلاعات پاک شد.')}
+function draw(){
+ document.getElementById('people').innerHTML=S.p.map(function(n,i){return '<span class="chip">'+esc(n)+'<button class="g" onclick="delP('+i+')">✕</button></span>'}).join('')||'<span class="m">هنوز کسی اضافه نشده</span>';
+ var old=document.getElementById('pa').value;
+ document.getElementById('pa').innerHTML=S.p.map(function(n){return '<option'+(n===old?' selected':'')+'>'+esc(n)+'</option>'}).join('');
+ drawSh();
+ var tot=S.e.reduce(function(s,e){return s+e.a},0);
+ document.getElementById('tot').textContent=S.e.length?'جمع کل: '+f(tot)+' تومان':'';
+ document.getElementById('ex').innerHTML=S.e.map(function(e,i){return '<div class="it"><div>'+esc(e.t)+'<div class="m">'+esc(e.by)+' پرداخت کرد · بین '+f(e.w.length)+' نفر'+(e.s?' (سهم دلخواه)':'')+'</div></div><div>'+f(e.a)+' <button class="g" onclick="delE('+i+')">✕</button></div></div>'}).join('')||'<span class="m">هنوز هزینه‌ای ثبت نشده</span>';
+ var b={};S.p.forEach(function(n){b[n]=0});
+ S.e.forEach(function(e){b[e.by]+=e.a;e.w.forEach(function(n){b[n]-=e.s?e.s[n]:e.a/e.w.length})});
+ document.getElementById('bal').innerHTML=S.p.map(function(n){var v=b[n];return '<div class="it"><span>'+esc(n)+'</span><span class="'+(v>0.5?'pos':v<-0.5?'neg':'')+'">'+(v>0.5?'طلبکار '+f(v):v<-0.5?'بدهکار '+f(-v):'تسویه')+'</span></div>'}).join('')||'<span class="m">—</span>';
+ var cr=[],db=[];S.p.forEach(function(n){if(b[n]>0.5)cr.push([n,b[n]]);else if(b[n]<-0.5)db.push([n,-b[n]])});
+ cr.sort(function(x,y){return y[1]-x[1]});db.sort(function(x,y){return y[1]-x[1]});
+ var out=[],i=0,j=0;
+ while(i<db.length&&j<cr.length){var m=Math.min(db[i][1],cr[j][1]);out.push('<div class="it"><span>'+esc(db[i][0])+' ← به '+esc(cr[j][0])+'</span><span><b>'+f(m)+'</b> تومان</span></div>');db[i][1]-=m;cr[j][1]-=m;if(db[i][1]<0.5)i++;if(cr[j][1]<0.5)j++}
+ document.getElementById('set').innerHTML=out.join('')||'<span class="m">فعلاً بدهی‌ای وجود ندارد</span>';
+}
+document.getElementById('nm').addEventListener('keydown',function(e){if(e.key==='Enter')addP()});
+draw();
+</script>
+</body>
+</html>
